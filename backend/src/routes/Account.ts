@@ -3,6 +3,7 @@ import mongoose from "mongoose"
 import {Auth , Authp} from "../Middleware/Auth"
 import { verifyToken } from "../Middleware/verifyToken"
 import { Account } from "../Schema/Account"
+import { User } from "../Schema/User"
 const router = express.Router()
 
 
@@ -37,6 +38,7 @@ interface TransactionReq {
 
 router.post("/transfer" , Authp , async (req : Request<{} , {} , TransactionReq , {}> , res:Response) => {
     try{
+        console.log(req.body)
         const token:string = req.body.token
         const val = verifyToken(token)
         if(!val)throw "Val Cannot Be Null!"
@@ -45,9 +47,13 @@ router.post("/transfer" , Authp , async (req : Request<{} , {} , TransactionReq 
         const acc = await Account.findOne({
             userOId : mongoose.Types.ObjectId.createFromHexString(val.userOId)
         }).session(session)
-        const acc2 = await Account.findOne({
-            userOId : mongoose.Types.ObjectId.createFromHexString(req.body.toId)
+        const us2 = await User.findOne({
+            userId : req.body.toId
         }).session(session)
+        if(!us2)throw "its null!"
+        const acc2 = await Account.findOne({
+            userOId : us2._id
+        })
         if(!acc || !acc2 || acc.balance < req.body.value || acc._id === acc2._id){
             session.abortTransaction()
             throw "Transaction Cancelled Due to Unavailability of Client or Sender!"
